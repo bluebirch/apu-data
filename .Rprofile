@@ -7,22 +7,22 @@
 # Studio Portable can't find libraries needed for knitr, so I load them all in
 # .Rprofile.
 
-require(evaluate)
-require(digest)
-require(formatR)
-require(highr)
-require(markdown)
-require(stringr)
-require(yaml)
-require(Rcpp)
-require(htmltools)
-require(caTools)
-require(bitops)
-require(knitr)
-require(jsonlite)
-require(base64enc)
-require(rprojroot)
-require(rmarkdown)
+#require(evaluate)
+#require(digest)
+#require(formatR)
+#require(highr)
+#require(markdown)
+#require(stringr)
+#require(yaml)
+#require(Rcpp)
+#require(htmltools)
+#require(caTools)
+#require(bitops)
+#require(knitr)
+#require(jsonlite)
+#require(base64enc)
+#require(rprojroot)
+#require(rmarkdown)
 
 # Just write something to the console so I know processing .Rprofile is
 # finished.
