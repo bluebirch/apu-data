@@ -1,0 +1,30 @@
+---
+title: "Analys av DATA.csv"
+author: "Stefan Björk"
+output:
+  html_document: default
+  pdf_document:
+    number_sections: true
+    latex_engine: xelatex
+mainfont: "Minion Pro"
+fontsize: 12pt
+lang: sv-SE
+papersize: a4
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.kable.NA = '')
+
+# Läs in CSV-filen (som är fixad med perlscriptet)
+af <- read.csv("DATA.csv", encoding="UTF-8")
+
+# Ändra benämning på utbildningsnivå
+#levels(af$Utbildningsnivå) <- c("Okänd","EU1", "EU2", "EU3", "EU4", "EU5")
+
+```
+
+# Inledning
+
+Tjong.

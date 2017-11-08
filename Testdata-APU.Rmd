@@ -18,10 +18,10 @@ knitr::opts_chunk$set(echo = TRUE)
 options(knitr.kable.NA = '')
 
 # Läs in CSV-filen (som är fixad med perlscriptet)
-af <- read.csv2("WTS+ATS.csv", encoding="UTF-8")
+af <- read.csv("DATA.csv", encoding="UTF-8")
 
 # Ändra benämning på utbildningsnivå
-levels(af$Utbildningsnivå) <- c("Okänd","EU1", "EU2", "EU3", "EU4", "EU5")
+#levels(af$Utbildningsnivå) <- c("Okänd","EU1", "EU2", "EU3", "EU4", "EU5")
 
 ```
 
