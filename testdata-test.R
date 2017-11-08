@@ -12,7 +12,9 @@ af$vts.birthdate <- ymd(af$vts.birthdate)
 af$birthyear_valid <- af$ats.birthyr - year(af$vts.birthdate) == 0
 
 # Rapportera de rader där födelseåret inte stämmer mellan ATS och VTS (detta skall ordnas med knitr när det väl fungerar)
-af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),c('tp','ats.birthyr','vts.birthdate')]
+af.invalid_year <- af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),c('tp','ats.birthyr','vts.birthdate','ats.tc','ats.testl')]
+
+summary(na.omit(af.invalid_year$ats.tc))
 
 # Funktion för att beräkna ålder (från https://stackoverflow.com/questions/3611314/calculating-ages-in-r)
 age = function(from, to) {
