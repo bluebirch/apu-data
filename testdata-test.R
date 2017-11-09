@@ -14,7 +14,16 @@ af$birthyear_valid <- af$ats.birthyr - year(af$vts.birthdate) == 0
 # Rapportera de rader där födelseåret inte stämmer mellan ATS och VTS (detta skall ordnas med knitr när det väl fungerar)
 af.invalid_year <- af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),c('tp','ats.birthyr','vts.birthdate','ats.tc','ats.testl')]
 
-summary(na.omit(af.invalid_year$ats.tc))
+library(plyr)
+
+# Vilka testcenter står för felen?
+tc.err <- count(af.invalid_year,vars="ats.tc")
+tc.err[with(tc.err, order(-freq)),]
+
+# Vilka testledare? Här är det uppenbart att värdet i testl behöver standardiseras av combine-csv.pl. Får fixa det någon dag.
+tl.err <- count(af.invalid_year,vars="ats.testl")
+tl.err[with(tl.err, order(-freq)),]
+
 
 # Funktion för att beräkna ålder (från https://stackoverflow.com/questions/3611314/calculating-ages-in-r)
 age = function(from, to) {
