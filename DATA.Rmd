@@ -2,29 +2,143 @@
 title: "Analys av DATA.csv"
 author: "Stefan Björk"
 output:
-  html_document: default
   pdf_document:
     number_sections: true
     latex_engine: xelatex
+  html_document: default
 mainfont: "Minion Pro"
+monofont: "Consolas"
 fontsize: 12pt
 lang: sv-SE
 papersize: a4
+references:
+- id: MNM
+  type: 'report'
+  title: Testdata från APU på Arbetsförmedlingen 2012--2016
+  author:
+  - family: Lindskog
+    given: Marcus
+  - family: Timstedt
+    given: Nicklas
+  - family: Öhrstedt
+    given: Maria
+  issued: 2017
+  publisher: Arbetsförmedlingen
+csl: apa.csl
 ---
+
+# Inledning
+
+Detta är en ny analys av de data som samlades in från Arbetsförmedlingens testcenter 2012--2016. Den tidigare analysen redovisades i rapporten *Testdata från APU på Arbetsförmedlingen 2012--2016* av Marcus Lindskog, Nicklas Timstedt och Maria Öhrstedt.
+
+## Datainsamling
+
+Från rapporten *Testdata från APU*:
+
+> Förfrågan om att samla in data gick ut till samtliga testcentrum på Arbetsförmedlingen under senare delen av 2016. Resultat från tester som inte är datoriserade har testcentrumen inte anmodats att skicka in, då det arbetet skulle blivit för omfattande. Detta gäller exempelvis DLS och Rey Complex Figure Test.
+>
+> Data från enstaka testcentrum har inte kommit med i underlaget. Vissa testcentrum hade också problem att exportera WTS data. Testdata från äldre versioner av WTS har inte fungerat att exportera. Efter några försök med alternativa instruktioner för export som inte heller fungerade beslöt Enheten Strategi att vi redan hade tillräckligt med testdata. Inskickade data har sammanfogats och rensats från ovidkommande uppgifter av Johannes Bengtsson, Ar Enheten Sdh, syd. [@MNM 3]
+
+## Databearbetning och analys
+
+### Tidigare analyser
+
+I rapporten *Testdata från APU* användes statistikverktyget R:
+
+> Data har importerats till Excel och analys har sedan utförts i statistikprogrammet R. Fredrik Jansson Dahlén och Petra Ornstein på Enheten Forskning och Utveckling, Analysavdelningen, har varit behjälplig i arbetet med att ta fram statistiskt underlag. [@MNM 3]
+
+Någon närmare information om vilka analyser som gjordes, hur databearbetning, rensning och liknande har jag inte. Inte heller har jag frågat efter de R-script som rimligen måste finnas kvar på Analysavdelningen. Jag har helt enkelt valt att börja om från början.
+
+### Mina analyser
+
+Min ingång härär att all databearbetning och alla analyser skall vara dokumenterade och sårbara. All "städning" av rådata skall vara dokumenterad och reproducerbar. Därför har jag utgått från det rådata i form av Excel-filer som jag fått tillgång till och gör varje steg i bearbetningen med hjälp av det som förr i tiden benämndes ADB, *automatisk databehandling*. Bearbetningen har gått till i följande steg:
+
+1. Excelfilerna konverterades till CSV (*comma-separated values*) med hjälp av ett litet program i Python (så fick jag samtidigt en anledning att öva mig i Python-programmering). CSV-filer har den fördelen att de är lätta att läsa in i såväl R som Excel.
+2. De enskilda CSV-filerna kombinerades till en sammanslagen CSV-fil med data från alla tre testsystem (VTS, ATS och HTS). Här gjorde jag stora ansträngningar att få till läsbara variabelnamn anpassade till R-nomenklatur. Excel-datum har också konverterats till vanliga datum. Under bearbetningen noterade jag följande:
+    1. I flera datafiler förekommer testpersonkoden TP999, ofta flera gånger. Jag vet inte vad den betyder och jag har helt enkelt ignorerat dem.
+    2. Det förekommer dubletter av testpersonkoder från olika testcenter. Detta löste jag genom att förse varje testperson med ett nummer för testcentret i fråga. Detta nummer är taget från det nummer som förekommer i filnamnet i rådata. Så har dubletten av till exempel testperson *NVA1449038* i både testcentrum 14 och 15 lösts genom att de fått koderna *NVA1449038/14* respektive *NVA1449038/15*.
+    3. Den sammanslagna CSV-filen har lästs in i R och dataintegritet och liknande har unersökts med hjälp av R. *Detta dokument är en redovisning av just den integritetsanalysen*.
+    
+# Integritetsanalys
 
 ```{r setup, include=FALSE}
 library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 options(knitr.kable.NA = '')
+```
 
-# Läs in CSV-filen (som är fixad med perlscriptet)
+## Preliminära datakonverteringar
+
+Det första steget är att läsa in själva datafilen:
+
+```{r read}
 af <- read.csv("DATA.csv", encoding="UTF-8")
+```
 
-# Ändra benämning på utbildningsnivå
-#levels(af$Utbildningsnivå) <- c("Okänd","EU1", "EU2", "EU3", "EU4", "EU5")
+Eftersom datum läses in som faktorer måste de konverteras till datum. Detta görs enklast med hjälp av `lubridate`
+
+```{r dateconv, message=FALSE}
+library(lubridate)
+af$ats.date <- ymd(af$ats.date)
+af$hts.date <- ymd(af$hts.date)
+af$vts.birthdate <- ymd(af$vts.birthdate)
+```
+
+## Ålder och datumangivelser
+
+Testpersonernas ålder finns (såvitt jag förstått) inte angiven någonstans utan måste beräknas utifrån födelsedatum och testdatum. Testdatum finns tillgängligt för ATS (`ats.date`) och HTS (`hts.date`). VTS saknar uppgift om testdatum. I VTS finns däremot testpersonens födelsedatum (`vts.birthdate`) och i ATS födelseår (`ats.birthyr`). HTS saknar uppgift om födelsedatum.
+
+### Felregistreringar av födelseår i ATS
+
+Bland födelseåren förekommer årtalet 1872 som är en uppenbar felregistrering: alla årtal före 1900 kan utan vidare rensas ut:
+
+```{r}
+af$ats.birthyr[af$ats.birthyr < 1900 & !is.na(af$ats.birthyr)]<- NA
 
 ```
 
-# Inledning
+Fördelningen av födelseår i ATS är dock märklig.
 
-Tjong.
+```{r fig.cap="Fördelning av årtal i `ats.birthyr` efter städning.", echo=FALSE}
+plot(factor(af$ats.birthyr,
+            levels=min(na.omit(af$ats.birthyr)):max(na.omit(af$ats.birthyr))))
+```
+
+Årtalen 1980 och 1990 sticker ut avsevärt. Detta omnämns också i *Testdata från APU*:
+
+> I ATS systemet är "man", födelseår "1980", "svensk" och utbildningsnivå "okänd" förinställt. Det är mycket hög frekvens av detta födelseår i materialet, vilket tolkas som att man på testcentrum (TC) i många fall inte lagt in verklig ålder utan låtit default-inställningen registreras. [@MNM 4]
+
+Enligt @MNM är alltså årtalet 1980 inte att lita på, men deta gäller även årtalet 1990. Detta framgår om man jämför hur födelseår registrerats i ATS respektive VTS. 
+```{r}
+af$birthyear_valid <- af$ats.birthyr - year(af$vts.birthdate) == 0
+t.invalid_year <- af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),
+                     c('tp','ats.birthyr','vts.birthdate')]
+```
+
+Tabellen `t.invalid_year` innehåller nu alla testpersoner där födelseår inte överensstämmer mellan ATS ovh VTS. Eftersom tabellen innehåller `r nrow(t.invalid_year)` rader återges den inte här. Bland differenserna märks dock en kraftig överrepresentation av årtalen 1980 och 1990:
+
+```{r echo=FALSE, message=FALSE}
+library(plyr)
+t.year <- count(t.invalid_year,vars="ats.birthyr")
+kable(head(t.year[with(t.year, order(-freq)),],n=10),row.names=FALSE,
+      caption="De tio vanligaste årtalen som skiljer mellan ATS och VTS.")
+```
+
+Att hela `r t.year[t.year$ats.birthyr==1990,2]` differenser för just årtalet 1990 skulle vara slumpmässiga felregistreringar förefaller synnerligen osannolikt. Således drar jag slutsatsen att såväl årtalen 1980 som 1990 är otillförlitliga i `ats.birthyr` och dessa rensas därför bort:
+
+```{r clean.ats.birthyr, message=FALSE}
+af$ats.birthyr[af$ats.birthyr==1980 | af$ats.birthyr==1990] <- NA
+```
+
+Fördelningen av födelseår i `ats.birthyr` innehåller nu två luckor, men en del av de luckorna fylls igen av födelsedatum från `vts.birthdate`.
+
+```{r fig.cap="Fördelning av årtal i `ats.birthyr` efter städning.", echo=FALSE}
+plot(factor(af$ats.birthyr,
+            levels=min(na.omit(af$ats.birthyr)):max(na.omit(af$ats.birthyr))))
+```
+
+### Beräkning av ålder
+
+Nu kan ålder beräknas, i första hand med hjälp av `vts.birthdate`, i andra hand med `ats.birthyr`.
+
+# Referenser
