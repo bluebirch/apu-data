@@ -1,5 +1,5 @@
 ---
-title: "Analys av DATA.csv"
+title: "Analys av APU-data"
 author: "Stefan Björk"
 output:
   pdf_document:
@@ -90,11 +90,10 @@ Testpersonernas ålder finns (såvitt jag förstått) inte angiven någonstans u
 
 ### Felregistreringar av födelseår i ATS
 
-Bland födelseåren förekommer årtalet 1872 som är en uppenbar felregistrering: alla årtal före 1900 kan utan vidare rensas ut:
+Bland födelseåren förekommer årtalet 1872 som är en uppenbar felregistrering och alla årtal före 1900 kan utan vidare rensas ut:
 
 ```{r}
-af$ats.birthyr[af$ats.birthyr < 1900 & !is.na(af$ats.birthyr)]<- NA
-
+af$ats.birthyr[af$ats.birthyr < 1900]<- NA
 ```
 
 Fördelningen av födelseår i ATS är dock märklig.
@@ -137,8 +136,41 @@ plot(factor(af$ats.birthyr,
             levels=min(na.omit(af$ats.birthyr)):max(na.omit(af$ats.birthyr))))
 ```
 
+### Testdatum
+
+Datum för testning finns i ATS och HTS, men inte i VTS. Det är snarare regel än undantag att testerna sker på samma dag, och därför kan antalet dagar mellan testtillfällena beräknas:
+
+```{r}
+diff.ats.hts <- abs(as.numeric(na.omit(af$ats.date-af$hts.date)))
+```
+
+För `r length(diff.ats.hts)` personer finns testdatum för både ATS och HTS. För `r length(diff.ats.hts[diff.ats.hts==0])` av dessa är differensen 0 dagar, dvs. testerna ATS och HTS genomfördes samma dag. För resterande testpersoner är mediandifferensen `r median(diff.ats.hts[diff.ats.hts>0])` och medeldifferensen `r mean(diff.ats.hts[diff.ats.hts>0])` vilket antyder en kraftigt sned fördelning. För `r length(diff.ats.hts[diff.ats.hts>30])` testpersoner är differensen större än 30 dagar -- och för `r length(diff.ats.hts[diff.ats.hts>100])` testpersoner större än 100 dagar -- och det finns anledning att fråga sig varför hur det kan komma sig att så många inte testats inom loppet av en månad.
+
 ### Beräkning av ålder
 
-Nu kan ålder beräknas, i första hand med hjälp av `vts.birthdate`, i andra hand med `ats.birthyr`.
+Eftersom testpersonernas ålder inte finns angiven någonstans måste den beräknas med hjälp av födelseår/födelsedatum respektive datum för testning. För födelsedatum används i första hand `vts.birthdate`, dels för att det är ett fullständigt datum, dels för att det är mer tillförlitligt än `ats.birthyr`. För testpersoner där `vts.birthdate` saknas men `ats.birthyr` finns sätts födelsedatum till den första juli angivet år för att balansera avsaknaden av dag och månad.
+
+```{r birthdate}
+af$birthdate <- af$vts.birthdate
+af$birthdate[is.na(af$birthdate) & !is.na(af$ats.birthyr)] <-
+  ymd(paste0(af$ats.birthyr[is.na(af$birthdate) & !is.na(af$ats.birthyr)],
+             "-07-01"))
+```
+
+Om både `ats.date` respektive `hts.date` finns angivet anges testdatum som den dag som infaller mittemellan de båda datumen. I annat fall anges `ats.date` eller `hts.date` beroende på vilken uppgift som råkar finnas tillgänglig.
+
+```{r date}
+af$date <- af$hts.date + (af$ats.date - af$hts.date) / 2
+af$date[is.na(af$date) & !is.na(af$ats.date)] <- af$ats.date[is.na(af$date) & !is.na(af$ats.date)]
+af$date[is.na(af$date) & !is.na(af$hts.date)] <- af$hts.date[is.na(af$date) & !is.na(af$hts.date)]
+```
+
+Och nu kan alltså testpersonernas ålder beräknas:
+
+```{r}
+af$age <- difftime(af$date, af$birthdate, units="years") # fuck this doesn't work
+```
+
+
 
 # Referenser
