@@ -137,6 +137,7 @@ sub read_csv {
 
     # read column headers
     my $colsref = $csv->getline($fh);
+
     #push @$colsref, "F1", "F2", "F3", "F4", "F5";    # why add more columns?
 
     # Check column headers and, if necessary, rename them
@@ -208,9 +209,20 @@ sub read_csv {
         }
 
         # Then educational level.
-        if ($row->{edlevel}) {
+        if ( $row->{edlevel} ) {
             $row->{edlevel} =~ m/^(\d+)/;
             $row->{edlevel} = 'EU' . $1 if ($1);
+        }
+
+        # Sex/gender
+        if ( defined $row->{sex} ) {
+            if ( $row->{sex} ) {
+                $row->{sex} = ucfirst $row->{sex};
+            }
+            else {
+                $row->{sex} = "NA";
+                die;
+            }
         }
 
         # Add row to global hash
@@ -241,6 +253,13 @@ print $out "\n";
 # write all data
 foreach my $key ( sort keys %DATA ) {
     my @row = map { $DATA{$key}->{$_} } @COLS;
+
+    # replace missing data with NA
+    for my $i ( 0 .. $#row ) {
+        $row[$i] = 'NA' if ( !defined $row[$i] || $row[$i] eq '' );
+    }
+
+    # write to CSV
     $csv->print( $out, \@row );
     print $out "\n";
 }

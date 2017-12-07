@@ -1,29 +1,19 @@
 ---
 title: "Analys av APU-data"
 author: "Stefan Björk"
+fontsize: 12pt
 output:
   pdf_document:
-    number_sections: true
     latex_engine: xelatex
+    number_sections: yes
   html_document: default
-mainfont: "Minion Pro"
-monofont: "Consolas"
-fontsize: 12pt
+mainfont: Minion Pro
+monofont: Consolas
 lang: sv-SE
 papersize: a4
-references:
-- id: MNM
-  type: 'report'
-  title: Testdata från APU på Arbetsförmedlingen 2012--2016
-  author:
-  - family: Lindskog
-    given: Marcus
-  - family: Timstedt
-    given: Nicklas
-  - family: Öhrstedt
-    given: Maria
-  issued: 2017
-  publisher: Arbetsförmedlingen
+bibliography:
+  - ../../bibliography/papers.bib
+  - ../../bibliography/books.bib
 csl: apa.csl
 ---
 
@@ -37,7 +27,7 @@ Från rapporten *Testdata från APU*:
 
 > Förfrågan om att samla in data gick ut till samtliga testcentrum på Arbetsförmedlingen under senare delen av 2016. Resultat från tester som inte är datoriserade har testcentrumen inte anmodats att skicka in, då det arbetet skulle blivit för omfattande. Detta gäller exempelvis DLS och Rey Complex Figure Test.
 >
-> Data från enstaka testcentrum har inte kommit med i underlaget. Vissa testcentrum hade också problem att exportera WTS data. Testdata från äldre versioner av WTS har inte fungerat att exportera. Efter några försök med alternativa instruktioner för export som inte heller fungerade beslöt Enheten Strategi att vi redan hade tillräckligt med testdata. Inskickade data har sammanfogats och rensats från ovidkommande uppgifter av Johannes Bengtsson, Ar Enheten Sdh, syd. [@MNM 3]
+> Data från enstaka testcentrum har inte kommit med i underlaget. Vissa testcentrum hade också problem att exportera WTS data. Testdata från äldre versioner av WTS har inte fungerat att exportera. Efter några försök med alternativa instruktioner för export som inte heller fungerade beslöt Enheten Strategi att vi redan hade tillräckligt med testdata. Inskickade data har sammanfogats och rensats från ovidkommande uppgifter av Johannes Bengtsson, Ar Enheten Sdh, syd. [@LindskogTimstedtOhrstedt2017 3]
 
 ## Databearbetning och analys
 
@@ -45,7 +35,7 @@ Från rapporten *Testdata från APU*:
 
 I rapporten *Testdata från APU* användes statistikverktyget R:
 
-> Data har importerats till Excel och analys har sedan utförts i statistikprogrammet R. Fredrik Jansson Dahlén och Petra Ornstein på Enheten Forskning och Utveckling, Analysavdelningen, har varit behjälplig i arbetet med att ta fram statistiskt underlag. [@MNM 3]
+> Data har importerats till Excel och analys har sedan utförts i statistikprogrammet R. Fredrik Jansson Dahlén och Petra Ornstein på Enheten Forskning och Utveckling, Analysavdelningen, har varit behjälplig i arbetet med att ta fram statistiskt underlag. [@LindskogTimstedtOhrstedt2017 3]
 
 Någon närmare information om vilka analyser som gjordes, hur databearbetning, rensning och liknande har jag inte. Inte heller har jag frågat efter de R-script som rimligen måste finnas kvar på Analysavdelningen. Jag har helt enkelt valt att börja om från början.
 
@@ -84,6 +74,14 @@ af$hts.date <- ymd(af$hts.date)
 af$vts.birthdate <- ymd(af$vts.birthdate)
 ```
 
+## Antal testpersoner
+
+```{r echo=FALSE}
+N <- nrow(af)
+```
+
+Datafilen innehåller `r N` individer, vilket skall jämföras med *Testdata från APU* som innehåller 5680 individer. Jag har alltså fått med `r N-5680` fler individer. Hur det kan komma sig vet jag inte.
+
 ## Ålder och datumangivelser
 
 Testpersonernas ålder finns (såvitt jag förstått) inte angiven någonstans utan måste beräknas utifrån födelsedatum och testdatum. Testdatum finns tillgängligt för ATS (`ats.date`) och HTS (`hts.date`). VTS saknar uppgift om testdatum. I VTS finns däremot testpersonens födelsedatum (`vts.birthdate`) och i ATS födelseår (`ats.birthyr`). HTS saknar uppgift om födelsedatum.
@@ -105,9 +103,9 @@ plot(factor(af$ats.birthyr,
 
 Årtalen 1980 och 1990 sticker ut avsevärt. Detta omnämns också i *Testdata från APU*:
 
-> I ATS systemet är "man", födelseår "1980", "svensk" och utbildningsnivå "okänd" förinställt. Det är mycket hög frekvens av detta födelseår i materialet, vilket tolkas som att man på testcentrum (TC) i många fall inte lagt in verklig ålder utan låtit default-inställningen registreras. [@MNM 4]
+> I ATS systemet är "man", födelseår "1980", "svensk" och utbildningsnivå "okänd" förinställt. Det är mycket hög frekvens av detta födelseår i materialet, vilket tolkas som att man på testcentrum (TC) i många fall inte lagt in verklig ålder utan låtit default-inställningen registreras. [@LindskogTimstedtOhrstedt2017 4]
 
-Enligt @MNM är alltså årtalet 1980 inte att lita på, men deta gäller även årtalet 1990. Detta framgår om man jämför hur födelseår registrerats i ATS respektive VTS. 
+Enligt @LindskogTimstedtOhrstedt2017 är alltså årtalet 1980 inte att lita på, men deta gäller även årtalet 1990. Detta framgår om man jämför hur födelseår registrerats i ATS respektive VTS. 
 ```{r}
 af$birthyear_valid <- af$ats.birthyr - year(af$vts.birthdate) == 0
 t.invalid_year <- af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),
@@ -161,16 +159,71 @@ Om både `ats.date` respektive `hts.date` finns angivet anges testdatum som den 
 
 ```{r date}
 af$date <- af$hts.date + (af$ats.date - af$hts.date) / 2
-af$date[is.na(af$date) & !is.na(af$ats.date)] <- af$ats.date[is.na(af$date) & !is.na(af$ats.date)]
-af$date[is.na(af$date) & !is.na(af$hts.date)] <- af$hts.date[is.na(af$date) & !is.na(af$hts.date)]
+af$date[is.na(af$date) & !is.na(af$ats.date)] <- 
+  af$ats.date[is.na(af$date) & !is.na(af$ats.date)]
+af$date[is.na(af$date) & !is.na(af$hts.date)] <- 
+  af$hts.date[is.na(af$date) & !is.na(af$hts.date)]
 ```
 
-Och nu kan alltså testpersonernas ålder beräknas:
+Och nu kan alltså testpersonernas ålder beräknas. För att beräkna tidsspannet mellan två tidpunkter i år behöver vi dock definera en egen funktion^[Se <https://stackoverflow.com/questions/3611314/calculating-ages-in-r>.]:
 
 ```{r}
-af$age <- difftime(af$date, af$birthdate, units="years") # fuck this doesn't work
+age = function(from, to) {
+  from_lt = as.POSIXlt(from)
+  to_lt = as.POSIXlt(to)
+  age = to_lt$year - from_lt$year
+  ifelse(to_lt$mon < from_lt$mon |
+           (to_lt$mon == from_lt$mon & to_lt$mday < from_lt$mday),
+         age - 1, age)
+}
+af$age <- age(af$birthdate, af$date)
+```
+
+```{r}
+# Referens till personen som är 14 år
+x <- af$age == 14 & !is.na(af$age)
 ```
 
 
+Detta ger en åldersfördelning som speglar fördelningen av födelseår, vilket förefaller rimligt. Att den yngsta testade personen skulle vara 14 år är däremot orimligt eftersom man måste vara minst 16 år för att vara inskriven vid Arbetsförmedlingen. Detta gäller testperson `r af$tp[x]` där födelsedatum är `r af$birthdate[x]` och testdatum `r af$date[x]` (`ats.date`=`r af$ats.date[x]` och `hts.date`=`r af$hts.date[x]`). Födelsedatum kommer från `ats.birthyr` (`r af$ats.birthyr[x]`) som alltså än en gång framstår som otillförlitligt.
+
+```{r fig.cap="Fördelning av ålder.", echo=FALSE}
+plot(factor(af$age, levels=min(na.omit(af$age)):max(na.omit(af$age))))
+```
+
+
+## Kön
+
+Den första frågan man måste ställa sig är om juridiskt kön (som det handlar om här) över huvud taget är intressant i sammanhanget. I exempelvis manualen för ATS [@ATS551] redovisas separata normer för män och kvinnor utan att något egentligt skäl anges. Jag gissar att det har att göra med psykologiämnets långa tradition av att betrakta kön som en variabel snarare än gedigen reflektion [se t. ex. @MagnussonMarecek2010].
+
+Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar.
+
+```{r echo=FALSE}
+kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS.")
+```
+
+```{r}
+sex.mismatch <- af$ats.sex != af$vts.sex
+af$ats.sex[sex.mismatch] <- NA
+af$vts.sex[sex.mismatch] <- NA
+```
+
+Efter denna städning kan vi göra en variabel `gender` som innehåller juridiskt kön från antingen ATS eller VTS:
+
+```{r}
+af$gender <- af$ats.sex
+af$gender[is.na(af$gender)] <- af$vts.sex[is.na(af$gender)]
+```
+
+```{r echo=FALSE}
+n.male <- length(na.omit(af$gender[af$gender=='Man']))
+n.female <- length(na.omit(af$gender[af$gender=='Man']))
+n.na <- length(af$gender[is.na(af$gender)])
+```
+
+
+Datafilen innehåller då `r length(na.omit(af$gender[af$gender=='Man']))` män (`r round(length(na.omit(af$gender[af$gender=='Man']))/nrow(af)*100)`%), `r length(na.omit(af$gender[af$gender=='Kvinna']))` kvinnor (`r round(length(na.omit(af$gender[af$gender=='Kvinna']))/nrow(af)*100)`%) och `r length(af$gender[is.na(af$gender)])` okända (`r round(length(af$gender[is.na(af$gender)])/nrow(af)*100)`%). -- men återigen, detta handlar om juridiskt kön och frågan är om detta är meningsfullt alls.
+
+42 % kvinnor och 58 % män
 
 # Referenser
