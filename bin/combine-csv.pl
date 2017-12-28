@@ -84,6 +84,8 @@ my %COLS = (
     ]
 );
 
+my %EDLEVEL;
+
 # Global array of all column headings encountered in csv files.
 my @COLS = $KEY;
 foreach my $type ( sort keys %COLS ) {
@@ -210,8 +212,13 @@ sub read_csv {
 
         # Then educational level.
         if ( $row->{edlevel} ) {
-            $row->{edlevel} =~ m/^(\d+)/;
-            $row->{edlevel} = 'EU' . $1 if ($1);
+            if ( $row->{edlevel} =~ m/^(\d)/ ) {
+                $row->{edlevel} = 'EU' . $1;
+            }
+            elsif ( $row->{edlevel} =~ m/^\?/ ) {
+                $row->{edlevel} = 'Okänd';
+            }
+            $EDLEVEL{ $row->{edlevel} } = $EDLEVEL{ $row->{edlevel} } ? $EDLEVEL{ $row->{edlevel} } + 1 : 1;
         }
 
         # Sex/gender
@@ -266,3 +273,4 @@ foreach my $key ( sort keys %DATA ) {
 
 $out->close;
 INFO "Done.";
+INFO Dumper \%EDLEVEL;

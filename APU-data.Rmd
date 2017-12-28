@@ -6,7 +6,13 @@ output:
   pdf_document:
     latex_engine: xelatex
     number_sections: yes
-  html_document: default
+    pandoc_args:
+      - "--filter"
+      - "pandoc-crossref"
+  html_document:
+    pandoc_args:
+      - "--filter"
+      - "pandoc-crossref"
 mainfont: Minion Pro
 monofont: Consolas
 lang: sv-SE
@@ -185,22 +191,23 @@ x <- af$age == 14 & !is.na(af$age)
 ```
 
 
-Detta ger en åldersfördelning som speglar fördelningen av födelseår, vilket förefaller rimligt. Att den yngsta testade personen skulle vara 14 år är däremot orimligt eftersom man måste vara minst 16 år för att vara inskriven vid Arbetsförmedlingen. Detta gäller testperson `r af$tp[x]` där födelsedatum är `r af$birthdate[x]` och testdatum `r af$date[x]` (`ats.date`=`r af$ats.date[x]` och `hts.date`=`r af$hts.date[x]`). Födelsedatum kommer från `ats.birthyr` (`r af$ats.birthyr[x]`) som alltså än en gång framstår som otillförlitligt.
+Detta ger en åldersfördelning som speglar fördelningen av födelseår, vilket förefaller rimligt. Att den yngsta testade personen skulle vara 14 år är däremot orimligt eftersom man måste vara minst 16 år för att vara inskriven vid Arbetsförmedlingen. Detta gäller testperson `r af$tp[x]` där födelsedatum är `r af$birthdate[x]` och testdatum `r af$date[x]` (`ats.date`=`r af$ats.date[x]` och `hts.date`=`r af$hts.date[x]`). Födelsedatum kommer från `ats.birthyr` (`r af$ats.birthyr[x]`) som alltså än en gång framstår som otillförlitligt. Åldersangivelsen tas bort:
 
-```{r fig.cap="Fördelning av ålder.", echo=FALSE}
-plot(factor(af$age, levels=min(na.omit(af$age)):max(na.omit(af$age))))
+```{r}
+af$age[x] <- NA
 ```
 
+Se vidare avsnitt [-@sec:deskriptiv-statistik] för redovisning av ålder och övrig deskriptiv statistik.
 
 ## Kön
 
-Den första frågan man måste ställa sig är om juridiskt kön (som det handlar om här) över huvud taget är intressant i sammanhanget. I exempelvis manualen för ATS [@ATS551] redovisas separata normer för män och kvinnor utan att något egentligt skäl anges. Jag gissar att det har att göra med psykologiämnets långa tradition av att betrakta kön som en variabel snarare än gedigen reflektion [se t. ex. @MagnussonMarecek2010].
-
-Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar.
+I det här sammanhanget handlar kön om juridiskt kön och ingenting annat.
 
 ```{r echo=FALSE}
 kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS.")
 ```
+
+Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar och det rimligaste är att helt enkelt ta bort dem.
 
 ```{r}
 sex.mismatch <- af$ats.sex != af$vts.sex
@@ -216,14 +223,108 @@ af$gender[is.na(af$gender)] <- af$vts.sex[is.na(af$gender)]
 ```
 
 ```{r echo=FALSE}
+gender.male <- af$gender=='Man'
+gender.female <- af$gender=='Kvinna'
+gender.known <- af$gender=='Man' | af$gender=='Kvinna'
 n.male <- length(na.omit(af$gender[af$gender=='Man']))
-n.female <- length(na.omit(af$gender[af$gender=='Man']))
+n.female <- length(na.omit(af$gender[af$gender=='Kvinna']))
 n.na <- length(af$gender[is.na(af$gender)])
 ```
 
+Se vidare avsnitt [-@sec:deskriptiv-statistik] för redovisning av kön och övrig deskriptiv statistik.
 
-Datafilen innehåller då `r length(na.omit(af$gender[af$gender=='Man']))` män (`r round(length(na.omit(af$gender[af$gender=='Man']))/nrow(af)*100)`%), `r length(na.omit(af$gender[af$gender=='Kvinna']))` kvinnor (`r round(length(na.omit(af$gender[af$gender=='Kvinna']))/nrow(af)*100)`%) och `r length(af$gender[is.na(af$gender)])` okända (`r round(length(af$gender[is.na(af$gender)])/nrow(af)*100)`%). -- men återigen, detta handlar om juridiskt kön och frågan är om detta är meningsfullt alls.
+## Utbildningsnivå
 
-42 % kvinnor och 58 % män
+Precis som med kön är utbildningsnivå i vissa fall inkonsekvent kodat i ATS respektive VTS (se Tabell [-@tbl:edlevel.xtab]).
+
+```{r echo=FALSE}
+kable(table(af$ats.edlevel,af$vts.edlevel), caption="Angiven utbildningsnivå i ATS respektive VTS. {#tbl:edlevel.xtab}")
+```
+
+Liksom för kön tas de med olika kordning bort, dock med undantaget att om utbildningsnå är `Okänd` i endera ATS eller VTS används upgifterna från det andra systemet.
+
+```{r}
+# Sätt okända i ATS till VTS-värdet
+subset <- af$ats.edlevel=='Okänd' & !is.na(af$ats.edlevel) & !is.na(af$vts.edlevel)
+af$ats.edlevel[subset] <- af$vts.edlevel[subset]
+# Sätt okända i VTS till ATS-värdet
+subset <- af$vts.edlevel=='Okänd' & !is.na(af$ats.edlevel) & !is.na(af$vts.edlevel)
+af$vts.edlevel[subset] <- af$ats.edlevel[subset]
+# Radera felkodningar
+subset <- af$ats.edlevel != af$vts.edlevel
+af$ats.edlevel[subset] <- NA
+af$vts.edlevel[subset] <- NA
+rm(subset)
+```
+
+Efter denna städning kan vi göra en variabel `edlevel` som innehåller juridiskt kön från antingen ATS eller VTS:
+
+```{r}
+af$edlevel <- af$ats.edlevel
+af$edlevel[is.na(af$edlevel)] <- af$vts.edlevel[is.na(af$edlevel)]
+```
+
+
+```{r echo=FALSE}
+kable(count(af$edlevel), caption="Utbildningsnivå. {#tbl:edlevel}", col.names=c("Utbildningsnivå","N"))
+```
+
+Som framgår av Tabell [-@tbl:edlevel] är en övervägande del utbildningsnivå EU2 (grundskola/9 år) och EU3 (yrkesgymnasium/11 år). Ett iögonenfallande mönster framträder dock om man undersöker könsfördelningen på de olika utbildningsnivåerna (se Tabell [-@tbl:edlevel.gender]). Andelen kvinnor ökar med stigande utbildningsnivå. Detta blir tydligt 
+
+```{r echo=FALSE}
+t <- table(af$edlevel, af$gender)
+# lägg till en kolumn med kvoten
+t <- cbind(t,round(t[,2]/t[,1],2))
+t <- cbind(t,round(t[,1]/(t[,1]+t[,2]),2))
+colnames(t)[3] <- "Kvot"
+colnames(t)[4] <- "Andel"
+kable(t, caption="Utbildningsnivå fördelat på kön (där det finns angivet). {#tbl:edlevel.gender}")
+rm(t)
+```
+
+
+```{r echo=FALSE}
+plot(table(af$edlevel,af$gender), col=c("red","blue"))
+```
+
+
+# Deskriptiv statistik {#sec:deskriptiv-statistik}
+
+```{r fig:age, fig.cap="Fördelning av ålder.", echo=FALSE}
+plot(factor(af$age, levels=min(na.omit(af$age)):max(na.omit(af$age))))
+```
+
+Den första frågan man måste ställa sig är om juridiskt kön (som det handlar om här) över huvud taget är intressant i sammanhanget. I exempelvis manualen för ATS [@ATS551] redovisas separata normer för män och kvinnor utan att något egentligt skäl anges. Jag gissar att det har att göra med psykologiämnets långa tradition av att betrakta kön som en variabel snarare än gedigen reflektion [se t. ex. @MagnussonMarecek2010].
+
+Datafilen innehåller då `r n.male` män (`r round(n.male/N*100)`%), `r n.female` kvinnor (`r round(n.female/N*100)`%) och `r n.na` okända (`r round(n.na/N*100)`%). Om man bortser från de okända är könsfördelningen `r round(n.male/(N-n.na)*100)`% män och `r round(n.female/(N-n.na)*100)`% kvinnor, vilket kan jämföras med *Testdata från APU* som uppger 42% kvinnor och 58% män [@LindskogTimstedtOhrstedt2017]. I datafilen är förhållandet män--kvinnor alltså 3:2, dvs. det går 1½ man på varje kvinna. Det finns anledning att fråga sig vad som ligger bakom en så uppenbart skev könsfördelning. *Hur kommer det sig att 50% fler män än kvinnor får del av en av Arbetsförmedlingens specialistinsatser, nämligen arbetspsykologisk utredning?*
+
+
+
+# ATS
+
+## Logisk förmåga (R), allmän intelligens, kognitiv förmåga, logik
+
+### Formlogik
+
+Table: Normdata för *Formlogik*, EU 3 och EU4 [@ATS55 66].
+
+|     |          | *N*  | *M*   | *s*  |
+|-----|----------|------|-------|------|
+| EU3 | Samtliga | 1878 | 12,28 | 5,37 |
+|     | Män      | 1386 | 12,34 | 5,38 |
+|     | Kvinnor  | 492  | 12,10 | 5,34 |
+| EU4 | Samtliga | 1008 | 15,39 | 5,08 |
+|     | Män      | 710  | 15,45 | 5,00 |
+|     | Kvinnor  | 298  | 15,23 | 5,27 |
+
+
+
+
+
+Table: Data för *Formlogik*.
+
+|            | *N*                     | *M* |
+| ---------: | ---:                    |     |
+| Samtliga   | `r mean(af$ats.dformr)` |     |
 
 # Referenser
