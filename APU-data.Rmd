@@ -61,7 +61,6 @@ Min ingång härär att all databearbetning och alla analyser skall vara dokumen
 library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 options(knitr.kable.NA = '')
-palette(c("red","blue","green"))
 ```
 
 ## Preliminära datakonverteringar
@@ -282,6 +281,8 @@ boxplot(af$age,notch=TRUE,col=1)
 plot(factor(af$age, levels=min(na.omit(af$age)):max(na.omit(af$age))))
 ```
 
+## Kön
+
 Den första frågan man måste ställa sig är om juridiskt kön (som det handlar om här) över huvud taget är intressant i sammanhanget. I exempelvis manualen för ATS [@ATS551] redovisas separata normer för män och kvinnor utan att något egentligt skäl anges. Jag gissar att det har att göra med psykologiämnets långa tradition av att betrakta kön som en variabel snarare än gedigen reflektion [se t. ex. @MagnussonMarecek2010].
 
 Datafilen innehåller då `r n.male` män (`r round(n.male/N*100)`%), `r n.female` kvinnor (`r round(n.female/N*100)`%) och `r n.na` okända (`r round(n.na/N*100)`%). Om man bortser från de okända är könsfördelningen `r round(n.male/(N-n.na)*100)`% män och `r round(n.female/(N-n.na)*100)`% kvinnor, vilket kan jämföras med *Testdata från APU* som uppger 42% kvinnor och 58% män [@LindskogTimstedtOhrstedt2017]. I datafilen är förhållandet män--kvinnor alltså 3:2, dvs. det går 1½ man på varje kvinna. Det finns anledning att fråga sig vad som ligger bakom en så uppenbart skev könsfördelning. *Hur kommer det sig att 50% fler män än kvinnor får del av en av Arbetsförmedlingens specialistinsatser, nämligen arbetspsykologisk utredning?*
@@ -307,6 +308,8 @@ rm(t)
 ```{r echo=FALSE}
 plot(table(af$edlevel,af$gender), col=c("red","blue"))
 ```
+
+
 
 
 
