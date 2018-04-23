@@ -24,8 +24,8 @@
 #require(rprojroot)
 #require(rmarkdown)
 
-Sys.setenv(RSTUDIO_PANDOC="I:\\Program")
+#Sys.setenv(RSTUDIO_PANDOC="I:\\Program")
 
 # Just write something to the console so I know processing .Rprofile is
 # finished.
-message("What is done is done. Welcome.")
+#message("What is done is done. Welcome.")

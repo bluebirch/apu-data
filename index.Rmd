@@ -1,0 +1,13 @@
+---
+title: "APU-data på Arbetsförmedlingen"
+author: "Stefan Björk"
+documentclass: "article"
+site: bookdown::bookdown_site
+lang: sv-SE
+mainfont: Minion Pro
+---
+
+# Förord {-}
+
+Start writing your book here. If you are in RStudio,
+Click the Build button to build the book.

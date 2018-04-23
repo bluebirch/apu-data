@@ -1,0 +1,209 @@
+# Integritetsanalys
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.kable.NA = '')
+```
+
+## Preliminära datakonverteringar
+
+Det första steget är att läsa in själva datafilen:
+
+```{r read}
+af <- read.csv("DATA.csv", encoding="UTF-8")
+```
+
+Eftersom datum läses in som faktorer måste de konverteras till datum. Detta görs enklast med hjälp av `lubridate`
+
+```{r dateconv, message=FALSE}
+library(lubridate)
+af$ats.date <- ymd(af$ats.date)
+af$hts.date <- ymd(af$hts.date)
+af$vts.birthdate <- ymd(af$vts.birthdate)
+```
+
+## Antal testpersoner
+
+```{r echo=FALSE}
+N <- nrow(af)
+```
+
+Datafilen innehåller `r N` individer, vilket skall jämföras med *Testdata från APU* som innehåller 5680 individer. Jag har alltså fått med `r N-5680` fler individer. Hur det kan komma sig vet jag inte.
+
+## Ålder och datumangivelser
+
+Testpersonernas ålder finns (såvitt jag förstått) inte angiven någonstans utan måste beräknas utifrån födelsedatum och testdatum. Testdatum finns tillgängligt för ATS (`ats.date`) och HTS (`hts.date`). VTS saknar uppgift om testdatum. I VTS finns däremot testpersonens födelsedatum (`vts.birthdate`) och i ATS födelseår (`ats.birthyr`). HTS saknar uppgift om födelsedatum.
+
+### Felregistreringar av födelseår i ATS
+
+Bland födelseåren förekommer årtalet 1872 som är en uppenbar felregistrering och alla årtal före 1900 kan utan vidare rensas ut:
+
+```{r}
+af$ats.birthyr[af$ats.birthyr < 1900]<- NA
+```
+
+Fördelningen av födelseår i ATS är dock märklig.
+
+```{r fig.cap="Fördelning av årtal i `ats.birthyr` efter städning.", echo=FALSE}
+plot(factor(af$ats.birthyr,
+            levels=min(na.omit(af$ats.birthyr)):max(na.omit(af$ats.birthyr))))
+```
+
+Årtalen 1980 och 1990 sticker ut avsevärt. Detta omnämns också i *Testdata från APU*:
+
+> I ATS systemet är "man", födelseår "1980", "svensk" och utbildningsnivå "okänd" förinställt. Det är mycket hög frekvens av detta födelseår i materialet, vilket tolkas som att man på testcentrum (TC) i många fall inte lagt in verklig ålder utan låtit default-inställningen registreras. [@LindskogTimstedtOhrstedt2017 4]
+
+Enligt @LindskogTimstedtOhrstedt2017 är alltså årtalet 1980 inte att lita på, men deta gäller även årtalet 1990. Detta framgår om man jämför hur födelseår registrerats i ATS respektive VTS. 
+```{r}
+af$birthyear_valid <- af$ats.birthyr - year(af$vts.birthdate) == 0
+t.invalid_year <- af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),
+                     c('tp','ats.birthyr','vts.birthdate')]
+```
+
+Tabellen `t.invalid_year` innehåller nu alla testpersoner där födelseår inte överensstämmer mellan ATS ovh VTS. Eftersom tabellen innehåller `r nrow(t.invalid_year)` rader återges den inte här. Bland differenserna märks dock en kraftig överrepresentation av årtalen 1980 och 1990:
+
+```{r echo=FALSE, message=FALSE}
+library(plyr)
+t.year <- count(t.invalid_year,vars="ats.birthyr")
+kable(head(t.year[with(t.year, order(-freq)),],n=10),row.names=FALSE,
+      caption="De tio vanligaste årtalen som skiljer mellan ATS och VTS.")
+```
+
+Att hela `r t.year[t.year$ats.birthyr==1990,2]` differenser för just årtalet 1990 skulle vara slumpmässiga felregistreringar förefaller synnerligen osannolikt. Således drar jag slutsatsen att såväl årtalen 1980 som 1990 är otillförlitliga i `ats.birthyr` och dessa rensas därför bort:
+
+```{r clean.ats.birthyr, message=FALSE}
+af$ats.birthyr[af$ats.birthyr==1980 | af$ats.birthyr==1990] <- NA
+```
+
+Fördelningen av födelseår i `ats.birthyr` innehåller nu två luckor, men en del av de luckorna fylls igen av födelsedatum från `vts.birthdate`.
+
+```{r fig.cap="Fördelning av årtal i `ats.birthyr` efter städning.", echo=FALSE}
+plot(factor(af$ats.birthyr,
+            levels=min(na.omit(af$ats.birthyr)):max(na.omit(af$ats.birthyr))))
+```
+
+### Testdatum
+
+Datum för testning finns i ATS och HTS, men inte i VTS. Det är snarare regel än undantag att testerna sker på samma dag, och därför kan antalet dagar mellan testtillfällena beräknas:
+
+```{r}
+diff.ats.hts <- abs(as.numeric(na.omit(af$ats.date-af$hts.date)))
+```
+
+För `r length(diff.ats.hts)` personer finns testdatum för både ATS och HTS. För `r length(diff.ats.hts[diff.ats.hts==0])` av dessa är differensen 0 dagar, dvs. testerna ATS och HTS genomfördes samma dag. För resterande testpersoner är mediandifferensen `r median(diff.ats.hts[diff.ats.hts>0])` och medeldifferensen `r mean(diff.ats.hts[diff.ats.hts>0])` vilket antyder en kraftigt sned fördelning. För `r length(diff.ats.hts[diff.ats.hts>30])` testpersoner är differensen större än 30 dagar -- och för `r length(diff.ats.hts[diff.ats.hts>100])` testpersoner större än 100 dagar -- och det finns anledning att fråga sig varför hur det kan komma sig att så många inte testats inom loppet av en månad.
+
+### Beräkning av ålder
+
+Eftersom testpersonernas ålder inte finns angiven någonstans måste den beräknas med hjälp av födelseår/födelsedatum respektive datum för testning. För födelsedatum används i första hand `vts.birthdate`, dels för att det är ett fullständigt datum, dels för att det är mer tillförlitligt än `ats.birthyr`. För testpersoner där `vts.birthdate` saknas men `ats.birthyr` finns sätts födelsedatum till den första juli angivet år för att balansera avsaknaden av dag och månad.
+
+```{r birthdate}
+af$birthdate <- af$vts.birthdate
+af$birthdate[is.na(af$birthdate) & !is.na(af$ats.birthyr)] <-
+  ymd(paste0(af$ats.birthyr[is.na(af$birthdate) & !is.na(af$ats.birthyr)],
+             "-07-01"))
+```
+
+Om både `ats.date` respektive `hts.date` finns angivet anges testdatum som den dag som infaller mittemellan de båda datumen. I annat fall anges `ats.date` eller `hts.date` beroende på vilken uppgift som råkar finnas tillgänglig.
+
+```{r date}
+af$date <- af$hts.date + (af$ats.date - af$hts.date) / 2
+af$date[is.na(af$date) & !is.na(af$ats.date)] <- 
+  af$ats.date[is.na(af$date) & !is.na(af$ats.date)]
+af$date[is.na(af$date) & !is.na(af$hts.date)] <- 
+  af$hts.date[is.na(af$date) & !is.na(af$hts.date)]
+```
+
+Och nu kan alltså testpersonernas ålder beräknas. För att beräkna tidsspannet mellan två tidpunkter i år behöver vi dock definera en egen funktion^[Se <https://stackoverflow.com/questions/3611314/calculating-ages-in-r>.]:
+
+```{r}
+age = function(from, to) {
+  from_lt = as.POSIXlt(from)
+  to_lt = as.POSIXlt(to)
+  age = to_lt$year - from_lt$year
+  ifelse(to_lt$mon < from_lt$mon |
+           (to_lt$mon == from_lt$mon & to_lt$mday < from_lt$mday),
+         age - 1, age)
+}
+af$age <- age(af$birthdate, af$date)
+```
+
+```{r}
+# Referens till personen som är 14 år
+x <- af$age == 14 & !is.na(af$age)
+```
+
+
+Detta ger en åldersfördelning som speglar fördelningen av födelseår, vilket förefaller rimligt. Att den yngsta testade personen skulle vara 14 år är däremot orimligt eftersom man måste vara minst 16 år för att vara inskriven vid Arbetsförmedlingen. Detta gäller testperson `r af$tp[x]` där födelsedatum är `r af$birthdate[x]` och testdatum `r af$date[x]` (`ats.date`=`r af$ats.date[x]` och `hts.date`=`r af$hts.date[x]`). Födelsedatum kommer från `ats.birthyr` (`r af$ats.birthyr[x]`) som alltså än en gång framstår som otillförlitligt. Åldersangivelsen tas bort:
+
+```{r}
+af$age[x] <- NA
+```
+
+Se vidare avsnitt [-@sec:deskriptiv-statistik] för redovisning av ålder och övrig deskriptiv statistik.
+
+## Kön
+
+I det här sammanhanget handlar kön om juridiskt kön och ingenting annat.
+
+```{r echo=FALSE}
+kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS. {#tbl:age.xtab}")
+```
+
+Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell (se [@tbl:age.xtab]) framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar och det rimligaste är att helt enkelt ta bort dem.
+
+```{r}
+sex.mismatch <- af$ats.sex != af$vts.sex
+af$ats.sex[sex.mismatch] <- NA
+af$vts.sex[sex.mismatch] <- NA
+```
+
+Efter denna städning kan vi göra en variabel `gender` som innehåller juridiskt kön från antingen ATS eller VTS:
+
+```{r}
+af$gender <- af$ats.sex
+af$gender[is.na(af$gender)] <- af$vts.sex[is.na(af$gender)]
+```
+
+```{r echo=FALSE}
+gender.male <- af$gender=='Man'
+gender.female <- af$gender=='Kvinna'
+gender.known <- af$gender=='Man' | af$gender=='Kvinna'
+n.male <- length(na.omit(af$gender[af$gender=='Man']))
+n.female <- length(na.omit(af$gender[af$gender=='Kvinna']))
+n.na <- length(af$gender[is.na(af$gender)])
+```
+
+Se vidare [@sec:deskriptiv-statistik] för redovisning av kön och övrig deskriptiv statistik.
+
+## Utbildningsnivå
+
+Precis som med kön är utbildningsnivå i vissa fall inkonsekvent kodat i ATS respektive VTS (se[@tbl:edlevel.xtab]).
+
+```{r echo=FALSE}
+kable(table(af$ats.edlevel,af$vts.edlevel), caption="Angiven utbildningsnivå i ATS respektive VTS. {#tbl:edlevel.xtab}")
+```
+
+Liksom för kön tas de med olika kordning bort, dock med undantaget att om utbildningsnå är `Okänd` i endera ATS eller VTS används upgifterna från det andra systemet.
+
+```{r}
+# Sätt okända i ATS till VTS-värdet
+subset <- af$ats.edlevel=='Okänd' & !is.na(af$ats.edlevel) & !is.na(af$vts.edlevel)
+af$ats.edlevel[subset] <- af$vts.edlevel[subset]
+# Sätt okända i VTS till ATS-värdet
+subset <- af$vts.edlevel=='Okänd' & !is.na(af$ats.edlevel) & !is.na(af$vts.edlevel)
+af$vts.edlevel[subset] <- af$ats.edlevel[subset]
+# Radera felkodningar
+subset <- af$ats.edlevel != af$vts.edlevel
+af$ats.edlevel[subset] <- NA
+af$vts.edlevel[subset] <- NA
+rm(subset)
+```
+
+Efter denna städning kan vi göra en variabel `edlevel` som innehåller juridiskt kön från antingen ATS eller VTS:
+
+```{r}
+af$edlevel <- af$ats.edlevel
+af$edlevel[is.na(af$edlevel)] <- af$vts.edlevel[is.na(af$edlevel)]
+```
+
