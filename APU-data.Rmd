@@ -3,13 +3,13 @@ title: "Analys av APU-data"
 author: "Stefan Björk"
 csl: apa.csl
 output:
-  html_document:
-    pandoc_args:
-    - --filter
-    - pandoc-crossref
   pdf_document:
     latex_engine: xelatex
     number_sections: yes
+    pandoc_args:
+    - --filter
+    - pandoc-crossref
+  html_document:
     pandoc_args:
     - --filter
     - pandoc-crossref
@@ -19,8 +19,19 @@ monofont: Consolas
 fontsize: 12pt
 papersize: a4
 bibliography:
-- ../../../Litteratur/papers.bib
-- ../../../Litteratur/books.bib
+- ../../bibliography/papers.bib
+- ../../bibliography/books.bib
+secPrefix: avsnitt
+figPrefix: Figur
+tblPrefix: Tabell
+header-includes:
+  - "\\usepackage[format=hang,font=small,labelfont=bf]{caption}"
+  - "\\let\\origquote\\quote"
+  - "\\let\\origendquote\\endquote"
+  - "\\renewenvironment*{quote}{\\origquote\\itshape}{\\origendquote}"
+include-before:
+  - "\\renewcommand{\\figurename}{Bild}"
+  - "\\renewcommand{\\tablename}{Tabell}"
 ---
 
 # Inledning
@@ -204,10 +215,10 @@ Se vidare avsnitt [-@sec:deskriptiv-statistik] för redovisning av ålder och ö
 I det här sammanhanget handlar kön om juridiskt kön och ingenting annat.
 
 ```{r echo=FALSE}
-kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS.")
+kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS. {#tbl:age.xtab}")
 ```
 
-Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar och det rimligaste är att helt enkelt ta bort dem.
+Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell (se [@tbl:age.xtab]) framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar och det rimligaste är att helt enkelt ta bort dem.
 
 ```{r}
 sex.mismatch <- af$ats.sex != af$vts.sex
@@ -231,11 +242,11 @@ n.female <- length(na.omit(af$gender[af$gender=='Kvinna']))
 n.na <- length(af$gender[is.na(af$gender)])
 ```
 
-Se vidare avsnitt [-@sec:deskriptiv-statistik] för redovisning av kön och övrig deskriptiv statistik.
+Se vidare [@sec:deskriptiv-statistik] för redovisning av kön och övrig deskriptiv statistik.
 
 ## Utbildningsnivå
 
-Precis som med kön är utbildningsnivå i vissa fall inkonsekvent kodat i ATS respektive VTS (se Tabell [-@tbl:edlevel.xtab]).
+Precis som med kön är utbildningsnivå i vissa fall inkonsekvent kodat i ATS respektive VTS (se[@tbl:edlevel.xtab]).
 
 ```{r echo=FALSE}
 kable(table(af$ats.edlevel,af$vts.edlevel), caption="Angiven utbildningsnivå i ATS respektive VTS. {#tbl:edlevel.xtab}")
@@ -270,9 +281,9 @@ af$edlevel[is.na(af$edlevel)] <- af$vts.edlevel[is.na(af$edlevel)]
 
 ## Ålder
 
-Åldersspannet sträcker sig från `r min(af$age,na.rm=TRUE)` till `r max(af$age,na.rm=TRUE)`. Medelåldern är `r round(mean(af$age, na.rm=TRUE),1)` och medianåldern `r median(af$age, na.rm=TRUE)`; fördelningen är positivt skev. Första kvartilen *Q₁*=`r quantile(af$age,prob=.25,na.rm=TRUE)` och *Q₃*=`r quantile(af$age,prob=.75,na.rm=TRUE)`; hälften av personerna återfinns i det åldersspannet.
+Åldersspannet sträcker sig från `r min(af$age,na.rm=TRUE)` till `r max(af$age,na.rm=TRUE)`. Medelåldern är `r round(mean(af$age, na.rm=TRUE),1)` och medianåldern `r median(af$age, na.rm=TRUE)`; fördelningen är positivt skev. Första kvartilen *Q₁*=`r quantile(af$age,prob=.25,na.rm=TRUE)` och *Q₃*=`r quantile(af$age,prob=.75,na.rm=TRUE)`; hälften av personerna återfinns i det åldersspannet. Se [@fig:age.boxplot].
 
-```{r fig:age.boxplot, fig.cap="Lådagram av ålder", echo=FALSE}
+```{r fig:age.boxplot, fig.cap="Lådagram av ålder. {#fig:age.boxplot}", echo=FALSE}
 boxplot(af$age,notch=TRUE,col=1)
 ```
 
