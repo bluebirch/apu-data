@@ -43,9 +43,9 @@ Bland födelseåren förekommer årtalet 1872 som är en uppenbar felregistrerin
 af$ats.birthyr[af$ats.birthyr < 1900]<- NA
 ```
 
-Fördelningen av födelseår i ATS är dock märklig.
+Fördelningen av födelseår i ATS är dock märklig, se Figur \@ref(fig:birthyr-dist).
 
-```{r fig.cap="Fördelning av årtal i `ats.birthyr` efter städning.", echo=FALSE}
+```{r birthyr-dist, fig.cap="Fördelning av år i variabeln `ats.birthyr`.", echo=FALSE}
 plot(factor(af$ats.birthyr,
             levels=min(na.omit(af$ats.birthyr)):max(na.omit(af$ats.birthyr))))
 ```
@@ -54,16 +54,17 @@ plot(factor(af$ats.birthyr,
 
 > I ATS systemet är "man", födelseår "1980", "svensk" och utbildningsnivå "okänd" förinställt. Det är mycket hög frekvens av detta födelseår i materialet, vilket tolkas som att man på testcentrum (TC) i många fall inte lagt in verklig ålder utan låtit default-inställningen registreras. [@LindskogTimstedtOhrstedt2017 4]
 
-Enligt @LindskogTimstedtOhrstedt2017 är alltså årtalet 1980 inte att lita på, men deta gäller även årtalet 1990. Detta framgår om man jämför hur födelseår registrerats i ATS respektive VTS. 
+Enligt @LindskogTimstedtOhrstedt2017 är alltså årtalet 1980 inte att lita på, men detta gäller även årtalet 1990. Detta framgår om man jämför hur födelseår registrerats i ATS respektive VTS. 
+
 ```{r}
 af$birthyear_valid <- af$ats.birthyr - year(af$vts.birthdate) == 0
 t.invalid_year <- af[af$birthyear_valid==FALSE & !is.na(af$birthyear_valid),
                      c('tp','ats.birthyr','vts.birthdate')]
 ```
 
-Tabellen `t.invalid_year` innehåller nu alla testpersoner där födelseår inte överensstämmer mellan ATS ovh VTS. Eftersom tabellen innehåller `r nrow(t.invalid_year)` rader återges den inte här. Bland differenserna märks dock en kraftig överrepresentation av årtalen 1980 och 1990:
+Tabellen `t.invalid_year` innehåller nu alla testpersoner där födelseår inte överensstämmer mellan ATS ovh VTS. Eftersom tabellen innehåller `r nrow(t.invalid_year)` rader återges endast de tio vanligaste årtalen där differenser förekommer (se Tabell \@ref(tab:t-year)). Årtalen 1980 och 1990 är kraftigt överrepresenterade.
 
-```{r echo=FALSE, message=FALSE}
+```{r t-year, echo=FALSE, message=FALSE}
 library(plyr)
 t.year <- count(t.invalid_year,vars="ats.birthyr")
 kable(head(t.year[with(t.year, order(-freq)),],n=10),row.names=FALSE,

@@ -1,10 +1,10 @@
 ---
 title: "APU-data på Arbetsförmedlingen"
 author: "Stefan Björk"
-documentclass: "article"
-site: bookdown::bookdown_site
 lang: sv-SE
 mainfont: Minion Pro
+site: bookdown::bookdown_site
+documentclass: article
 ---
 
 # Förord {-}
