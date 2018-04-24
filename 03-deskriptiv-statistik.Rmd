@@ -9,7 +9,7 @@ boxplot(af$age,notch=TRUE,col=1)
 ```
 
 
-```{r age, fig.cap="Fördelning av ålder.", echo=FALSE}
+```{r age-freq, fig.cap="Fördelning av ålder.", echo=FALSE}
 plot(factor(af$age, levels=min(na.omit(af$age)):max(na.omit(af$age))))
 ```
 
@@ -19,20 +19,20 @@ Den första frågan man måste ställa sig är om juridiskt kön (som det handla
 
 Datafilen innehåller då `r n.male` män (`r round(n.male/N*100)`%), `r n.female` kvinnor (`r round(n.female/N*100)`%) och `r n.na` okända (`r round(n.na/N*100)`%). Om man bortser från de okända är könsfördelningen `r round(n.male/(N-n.na)*100)`% män och `r round(n.female/(N-n.na)*100)`% kvinnor, vilket kan jämföras med *Testdata från APU* som uppger 42% kvinnor och 58% män [@LindskogTimstedtOhrstedt2017]. I datafilen är förhållandet män--kvinnor alltså 3:2, dvs. det går 1½ man på varje kvinna. Det finns anledning att fråga sig vad som ligger bakom en så uppenbart skev könsfördelning. *Hur kommer det sig att 50% fler män än kvinnor får del av en av Arbetsförmedlingens specialistinsatser, nämligen arbetspsykologisk utredning?*
 
-```{r echo=FALSE}
-kable(count(af$edlevel), caption="Utbildningsnivå. {#tbl:edlevel}", col.names=c("Utbildningsnivå","N"))
+```{r edlevel, echo=FALSE}
+kable(count(af$edlevel), caption="Utbildningsnivå.", col.names=c("Utbildningsnivå","N"))
 ```
 
-Som framgår av Tabell [-@tbl:edlevel] är en övervägande del utbildningsnivå EU2 (grundskola/9 år) och EU3 (yrkesgymnasium/11 år). Ett iögonenfallande mönster framträder dock om man undersöker könsfördelningen på de olika utbildningsnivåerna (se Tabell [-@tbl:edlevel.gender]). Andelen kvinnor ökar med stigande utbildningsnivå. Detta blir tydligt 
+Som framgår av Tabell \@ref(tab:edlevel) är en övervägande del utbildningsnivå EU2 (grundskola/9 år) och EU3 (yrkesgymnasium/11 år). Ett iögonenfallande mönster framträder dock om man undersöker könsfördelningen på de olika utbildningsnivåerna (se Tabell \@ref(tab:edlevel-gender)). Andelen kvinnor ökar med stigande utbildningsnivå. Detta blir tydligt 
 
-```{r echo=FALSE}
+```{r edlevel-gender, echo=FALSE}
 t <- table(af$edlevel, af$gender)
 # lägg till en kolumn med kvoten
 t <- cbind(t,round(t[,2]/t[,1],2))
 t <- cbind(t,round(t[,1]/(t[,1]+t[,2]),2))
 colnames(t)[3] <- "Kvot"
 colnames(t)[4] <- "Andel"
-kable(t, caption="Utbildningsnivå fördelat på kön (där det finns angivet). {#tbl:edlevel.gender}")
+kable(t, caption="Utbildningsnivå fördelat på kön (där det finns angivet).")
 rm(t)
 ```
 
@@ -41,33 +41,3 @@ rm(t)
 plot(table(af$edlevel,af$gender), col=c("red","blue"))
 ```
 
-
-
-
-
-# ATS
-
-## Logisk förmåga (R), allmän intelligens, kognitiv förmåga, logik
-
-### Formlogik
-
-Table: Normdata för *Formlogik*, EU 3 och EU4 [@ATS55 66].
-
-|     |          | *N*  | *M*   | *s*  |
-|-----|----------|------|-------|------|
-| EU3 | Samtliga | 1878 | 12,28 | 5,37 |
-|     | Män      | 1386 | 12,34 | 5,38 |
-|     | Kvinnor  | 492  | 12,10 | 5,34 |
-| EU4 | Samtliga | 1008 | 15,39 | 5,08 |
-|     | Män      | 710  | 15,45 | 5,00 |
-|     | Kvinnor  | 298  | 15,23 | 5,27 |
-
-
-
-
-
-Table: Data för *Formlogik*.
-
-|            | *N*                     | *M* |
-| ---------: | ---:                    |     |
-| Samtliga   | `r mean(af$ats.dformr)` |     |

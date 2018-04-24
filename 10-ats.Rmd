@@ -1,0 +1,23 @@
+# ATS
+
+## Logisk förmåga (R), allmän intelligens, kognitiv förmåga, logik
+
+### Formlogik
+
+Table: Normdata för *Formlogik*, EU 3 och EU4 [@ATS55 66].
+
+|     |          | *N*  | *M*   | *s*  |
+| :-- | :------- | ---: | ----: | ---: |
+| EU3 | Samtliga | 1878 | 12,28 | 5,37 |
+|     | Män      | 1386 | 12,34 | 5,38 |
+|     | Kvinnor  |  492 | 12,10 | 5,34 |
+| EU4 | Samtliga | 1008 | 15,39 | 5,08 |
+|     | Män      |  710 | 15,45 | 5,00 |
+|     | Kvinnor  |  298 | 15,23 | 5,27 |
+
+
+Table: Data för *Formlogik*.
+
+|          | *N*                     | *M* |
+| :------- | ----------------------: | ---: |
+| Samtliga | `r mean(af$ats.dformr)` |     |

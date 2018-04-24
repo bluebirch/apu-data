@@ -148,7 +148,7 @@ Se vidare avsnitt [-@sec:deskriptiv-statistik] för redovisning av ålder och ö
 I det här sammanhanget handlar kön om juridiskt kön och ingenting annat.
 
 ```{r echo=FALSE}
-kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS. {#tbl:age.xtab}")
+kable(table(af$ats.sex,af$vts.sex), caption="Fyrfältstabell av kön i ATS respektive VTS.")
 ```
 
 Kön finns i `ats.sex` och `vts.sex`. Om man ställer variablerna mot varandra i en fyrfältstabell (se [@tbl:age.xtab]) framgår att ett antal personer är kodade som män i det ena systemet och kvinnor i det andra. Detta är uppenbara felregistreringar och det rimligaste är att helt enkelt ta bort dem.
@@ -182,7 +182,7 @@ Se vidare [@sec:deskriptiv-statistik] för redovisning av kön och övrig deskri
 Precis som med kön är utbildningsnivå i vissa fall inkonsekvent kodat i ATS respektive VTS (se[@tbl:edlevel.xtab]).
 
 ```{r echo=FALSE}
-kable(table(af$ats.edlevel,af$vts.edlevel), caption="Angiven utbildningsnivå i ATS respektive VTS. {#tbl:edlevel.xtab}")
+kable(table(af$ats.edlevel,af$vts.edlevel), caption="Angiven utbildningsnivå i ATS respektive VTS.")
 ```
 
 Liksom för kön tas de med olika kordning bort, dock med undantaget att om utbildningsnå är `Okänd` i endera ATS eller VTS används upgifterna från det andra systemet.

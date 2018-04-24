@@ -1,13 +1,15 @@
 ---
 title: "APU-data på Arbetsförmedlingen"
 author: "Stefan Björk"
+csl: apa.csl
+output: pdf_document
 lang: sv-SE
 mainfont: Minion Pro
-site: bookdown::bookdown_site
+fontsize: 12pt
 documentclass: article
+site: bookdown::bookdown_site
+bibliography:
+- ../../Litteratur/books.bib
+- ../../Litteratur/papers.bib
 ---
 
-# Förord {-}
-
-Start writing your book here. If you are in RStudio,
-Click the Build button to build the book.
